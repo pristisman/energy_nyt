@@ -7,7 +7,7 @@ This paper explores shifts in the discourse surrounding energy policy by applyin
 
 This repository contains the code, data, and outputs necessary to reproduce the analyses, figures, and results in the paper.
 
-### 1. `code/` 
+### 1. `code/` Folder
 
 Contains all the scripts needed to process data, run models, and generate results.
 
@@ -50,7 +50,7 @@ Includes supporting scripts used during model development on different data subs
 
 ---
 
-### 2. `data/` 
+### 2. `data/` Folder
 
 Contains the following datasets built using `1.0.build_dataset.qmd`:
 
@@ -62,7 +62,7 @@ Contains the following datasets built using `1.0.build_dataset.qmd`:
 
 ---
 
-### 3. `figures/` 
+### 3. `figures/` Folder
 
 Contains all visual outputs generated for the paper:
 
