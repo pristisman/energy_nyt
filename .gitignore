@@ -4,3 +4,6 @@
 .Ruserdata
 data/nyt-metadata.csv
 energy_nyt.Rproj
+data/archive/nyt_combined_2021_2025.csv
+data/archive/nyt_2024.csv
+data/archive/nyt_2025.csv
