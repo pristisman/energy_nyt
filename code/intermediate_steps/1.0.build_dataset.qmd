@@ -1,0 +1,83 @@
+---
+title: "Building database"
+author: "Priscila Stisman"
+format: html
+editor: visual
+---
+
+### Building Dataset
+
+This code uses the `nyt-metadata.csv` file, which contains over 2.1 million New York Times headlines. I extracted samples from the years 2021 to 2025 to analyze how the narrative around energy policy evolved during this period—particularly before and after the Russia-Ukraine war, which began in February 2022.
+
+The code below outlines the process used to sample headlines from each of these years and combine them into a single dataset, saved as `nyt_combined_2021_2025.csv` in the data folder.
+
+```{r}
+###Setup
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(here)
+library(stringr)
+```
+
+```{r}
+
+### Building the database from scratch 
+
+set.seed(2710)
+
+# Sample 2021
+nyt_2021 <- fread(here("data", "nyt-metadata.csv"),
+                 select = c("pub_date", "headline", "abstract", "keywords", "lead_paragraph")) %>%
+  # Use ymd_hms to parse dates in YYYY-MM-DD HH:MM:SS format
+  mutate(date_parsed = lubridate::ymd_hms(pub_date)) %>%
+  # Filter by year
+  filter(year(date_parsed) == 2021)
+
+write_csv(nyt_2021, here("data","nyt_2021.csv"))
+
+
+# Sample 2022
+nyt_2022 <- fread(here("data", "nyt-metadata.csv"),
+                 select = c("pub_date", "headline", "abstract", "keywords", "lead_paragraph")) %>%
+  # Use ymd_hms to parse dates in YYYY-MM-DD HH:MM:SS format
+  mutate(date_parsed = lubridate::ymd_hms(pub_date)) %>%
+  # Filter by year
+  filter(year(date_parsed) == 2022)
+
+write_csv(nyt_2022, here("data","nyt_2022.csv"))
+
+
+# Sample 2023
+nyt_2023 <- fread(here("data", "nyt-metadata.csv"),
+                 select = c("pub_date", "headline", "abstract", "keywords", "lead_paragraph")) %>%
+  # Use ymd_hms to parse dates in YYYY-MM-DD HH:MM:SS format
+  mutate(date_parsed = lubridate::ymd_hms(pub_date)) %>%
+  # Filter by year
+  filter(year(date_parsed) == 2023) 
+
+write_csv(nyt_2023, here("data","nyt_2023.csv"))
+
+
+# Combine them all into one dataframe
+nyt_combined <- bind_rows(nyt_2021, nyt_2022, nyt_2023)
+write_csv(nyt_combined, here("data", "nyt_combined_2021_2023.csv"))
+
+```
+
+```{r}
+### Reading the csv and combining them all into a single one
+
+# First read all your individual CSV files
+nyt_2021 <- read_csv(here("data", "nyt_2021.csv"))
+nyt_2022 <- read_csv(here("data", "nyt_2022.csv"))
+nyt_2023 <- read_csv(here("data", "nyt_2023.csv"))
+
+
+# Combine them all into one dataframe
+nyt_combined_2021_2023 <- bind_rows(nyt_2021, nyt_2022, nyt_2023)
+
+# Write the combined dataset to a new file
+write_csv(nyt_combined, here("data", "nyt_combined_2021_2023.csv"))
+
+```

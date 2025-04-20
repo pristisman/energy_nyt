@@ -1,0 +1,336 @@
+---
+title: "energy_policy"
+format: pdf
+editor: visual
+---
+
+## Energy Policy
+
+```{r}
+###Setup
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(here)
+library(stringr)
+library(ggplot2)
+library(quanteda)
+library(tidymodels)
+```
+
+```{r}
+
+### Read data
+nyt <- read_csv(here("data", "nyt_combined_2021_2023.csv")) %>%
+  mutate(pub_date = ymd_hms(pub_date),  # ensure it's a datetime
+         post_war = if_else(pub_date >= as.POSIXct("2022-02-24 00:00:00"), 1, 0)) %>%
+  select(-date_parsed, -keywords)
+
+```
+
+```{r}
+### Filter news by the word usage related to energy (same as 1.1)
+
+nyt <- nyt %>%
+  mutate(
+    headline = str_to_lower(headline),
+    abstract = str_to_lower(abstract),
+    lead_paragraph = str_to_lower(lead_paragraph)
+  ) #I select all news articles that use any word from my set of energy keywords either in the headline, abstract or lead paragraph
+
+
+energy_keywords <- c(
+  "energy", "climate", "climate change", "global warming", "coal", "wind",
+  "solar", "nuclear", "biofuels", "gas", "gasoline", "natural gas", "oil", "fossil fuels",
+  "renewable", "fuel", "hydropower", "electricity", "power grid", "emissions", "carbon",
+  "greenhouse gases", "decarbonization", "clean energy", "transition", "sustainability", "green economy", "methane", "hydrogen", "infrastructure", "lithium", "electric vehicles", "clean technology", "COP26", "Paris Agreement", "environment", "net zero", "footprint", "IPCC", "UNFCCC", "greentech", "petroleum", "ecological", "environmental", "climate resilience", "EIA", "biofuel", "bio", "twh", "terawatt", "kilowatt", "flood", "hurricane", "earthquake", "greenhouse", "lithium", "pipeline", "gazprom", "nord stream 1", "nord stream", "methane", "cng", "lng", "wti price", "brent crude", "crude oil","liquefied", "minerals", "clean energy", "heat", "warming", "blackout", "opec")
+
+# Create regex pattern
+pattern <- str_c(energy_keywords, collapse = "|") 
+
+# Filter dataset
+energy_nyt <- nyt %>%
+  filter(str_detect(headline, pattern) |
+         str_detect(abstract, pattern) |
+           str_detect(lead_paragraph, pattern))
+  
+
+energy_nyt <- energy_nyt %>%
+  mutate(year = year(pub_date))
+
+energy_nyt <- energy_nyt %>% 
+  mutate(headline = str_match(energy_nyt$headline, "'main': '([^']+)'")[,2])
+
+```
+
+#Policy Related Words
+
+```{r}
+### Filter news by the word usage related to energy
+
+
+policy_keywords <- c("policy", "congress", "bill", "congressional", "government", "administration", "authority", "agency", "ministry", "department", "bureau", "commission", "executive", "federal", "state", "municipal", "parliament", "government", "administration", "authority", "agency", "ministry", "department", "bureau", "commission", "executive", "federal", "state", "municipal", "parliament", "implementation", "enforcement", "compliance", "draft", "debate", "hearing", "vote", "negotiation", "policy-making", "consultation", "lawmaker", "legislator", "senator", "representative", "policy-maker", "policyholder", "stakeholder", "lobby", "interest group")
+
+# Create regex pattern
+policy_pattern <- str_c(policy_keywords, collapse = "|")
+
+# Filter dataset
+energy_policy_nyt <- energy_nyt %>%
+  filter(str_detect(headline, policy_pattern) |
+         str_detect(abstract, policy_pattern) |
+           str_detect(lead_paragraph, policy_pattern))
+
+
+```
+
+### Dictionary
+
+```{r}
+library(vader) 
+
+sentiment_analysis_policy <- energy_policy_nyt |>
+  mutate(sentiment_score = sapply(headline, function(x) get_vader(x)[["compound"]])) 
+#This function applies the VADER sentiment analysis to each tweet (x). 
+#It returns the compound score from the sentiment analysis result. 
+
+#The compound score is a single metric that summarizes the overall sentiment, ranging from -1 (most negative) to +1 (most positive).
+
+sentiment_analysis_policy <- sentiment_analysis_policy |> 
+  select(abstract, year, post_war, sentiment_score) |>
+  mutate(sentiment = case_when(sentiment_score>0 ~ "positive",
+                               sentiment_score == 0 ~ "neutral",
+                               sentiment_score<0 ~ "negative"))
+
+
+sentiment_percent_war_policy <- sentiment_analysis_policy %>%
+  count(post_war, sentiment) %>%
+  group_by(post_war) %>%
+  mutate(percentage = n / sum(n) * 100) %>%
+  ungroup()
+
+# Gráfico de barras con distribución de sentimientos por año
+ggplot(sentiment_percent_war_policy, aes(x = post_war, y = percentage, fill = sentiment)) +
+  geom_col(position = "stack") +
+  scale_fill_manual(name = "Sentiment", 
+                    values = c(negative = "brown2", 
+                               positive = "darkolivegreen2", 
+                               neutral = "darkslategray3"),
+                    labels = c(negative = "Negative",
+                               neutral = "Neutral",
+                               positive = "Positive")) +
+  scale_x_continuous(breaks = c(0, 1), labels = c("Pre-war", "Post-war")) +
+  labs(title = "Sentiment Distribution by Year",
+       x = "",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+
+```
+
+# Prepro
+
+```{r}
+# # Pre-processing
+# 
+# #1.1 Creating corpus
+# corpus_policy <- corpus(energy_policy_nyt, text_field = "lead_paragraph") 
+# 
+# #1.2 Tokenize
+# 
+# tokens_policy <- tokens(corpus_policy, 
+#                  split_hyphens = FALSE, # keep hyphenated words
+#                  remove_punct = TRUE, # remove punctuation
+#                  remove_numbers = TRUE, # remove digits
+#                  remove_symbols = TRUE, # remove symbols
+#                  valuetype = "regex") |>  
+#   tokens_tolower() |> 
+#   tokens_wordstem() |> 
+#   tokens_remove(c(stopwords("en"), 
+#                           "said", "articl", "first", "two", "one", "like", 
+#                           "new", "day", "presid", "peopl", "time", "theater", 
+#                           "year", "week", "citi", "it’"))
+# 
+# 
+# dfm_policy <- tokens_policy |> 
+#         dfm()
+# 
+# dfm_policy <- dfm_policy |> dfm(min_docfreq = 0.05, max_docfreq = 0.95, docfreq_type = "prop", verbose = TRUE) 
+# 
+# topfeatures(dfm_policy)
+```
+
+#topic modeling por año
+
+```{r}
+# library(topicmodels)
+# library(tidytext)
+# 
+# ## 2021
+# dfm_policy_2021 <- dfm_subset(dfm_policy, year==2021)
+# set.seed(1234)
+# dfm_policy_2021_lda <- convert(dfm_policy_2021, to="topicmodels") 
+# k = 5
+# lda_policy_2021 <- LDA(dfm_policy_2021_lda, k = k, control = list(seed = 1234))
+# 
+# #Explore Betas
+# topics_policy_2021 <- tidy(lda_policy_2021, matrix = "beta")
+# head(topics)
+# 
+# # Visualize the Top Words in Each Topic  
+# top_terms_policy_2021 <- topics_policy_2021 %>%
+#   group_by(topic) %>%
+#   slice_max(beta, n = 10) %>% 
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# 
+# # Plot top words per topic
+# top_terms_policy_2021 %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(beta, term, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   scale_y_reordered() +
+#   labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+#   theme_minimal()
+
+
+
+```
+
+```{r}
+## 2022
+# dfm_policy_2022 <- dfm_subset(dfm_policy, year==2022)
+# set.seed(1234)
+# dfm_policy_2022_lda <- convert(dfm_policy_2022, to="topicmodels") 
+# k = 5
+# lda_policy_2022 <- LDA(dfm_policy_2022_lda, k = k, control = list(seed = 1234))
+# 
+# #Explore Betas
+# topics_policy_2022 <- tidy(lda_policy_2022, matrix = "beta")
+# head(topics)
+# 
+# # Visualize the Top Words in Each Topic  
+# top_terms_policy_2022 <- topics_policy_2022 %>%
+#   group_by(topic) %>%
+#   slice_max(beta, n = 10) %>% 
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# 
+# # Plot top words per topic
+# top_terms_policy_2022 %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(beta, term, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   scale_y_reordered() +
+#   labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+#   theme_minimal()
+
+
+```
+
+```{r}
+## 2023
+# dfm_policy_2023 <- dfm_subset(dfm_policy, year==2023)
+# set.seed(1234)
+# dfm_policy_2023_lda <- convert(dfm_policy_2023, to="topicmodels") 
+# k = 5
+# lda_policy_2023 <- LDA(dfm_policy_2023_lda, k = k, control = list(seed = 1234))
+# 
+# #Explore Betas
+# topics_policy_2023 <- tidy(lda_policy_2023, matrix = "beta")
+# head(topics)
+# 
+# # Visualize the Top Words in Each Topic  
+# top_terms_policy_2023 <- topics_policy_2023 %>%
+#   group_by(topic) %>%
+#   slice_max(beta, n = 10) %>% 
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# 
+# # Plot top words per topic
+# top_terms_policy_2023 %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(beta, term, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   scale_y_reordered() +
+#   labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+#   theme_minimal()
+
+
+```
+
+
+
+```{r}
+
+# 
+# 
+# ## prewar
+# dfm_policy_prewar <- dfm_subset(dfm_policy, post_war==0)
+# set.seed(1234)
+# dfm_policy_prewar_lda <- convert(dfm_policy_prewar, to="topicmodels") 
+# k = 5
+# lda_policy_prewar <- LDA(dfm_policy_prewar_lda, k = k, control = list(seed = 1234))
+# 
+# #Explore Betas
+# topics_policy_prewar <- tidy(lda_policy_prewar, matrix = "beta")
+# head(topics)
+# 
+# # Visualize the Top Words in Each Topic  
+# top_terms_policy_prewar <- topics_policy_prewar %>%
+#   group_by(topic) %>%
+#   slice_max(beta, n = 10) %>% 
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# 
+# # Plot top words per topic
+# top_terms_policy_prewar %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(beta, term, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   scale_y_reordered() +
+#   labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+#   theme_minimal()
+# 
+# 
+
+```
+
+```{r}
+# 
+# ## postwar
+# dfm_policy_postwar <- dfm_subset(dfm_policy, post_war==1)
+# set.seed(1234)
+# dfm_policy_postwar_lda <- convert(dfm_policy_postwar, to="topicmodels") 
+# k = 5
+# lda_policy_postwar <- LDA(dfm_policy_postwar_lda, k = k, control = list(seed = 1234))
+# 
+# #Explore Betas
+# topics_policy_postwar <- tidy(lda_policy_postwar, matrix = "beta")
+# head(topics)
+# 
+# # Visualize the Top Words in Each Topic  
+# top_terms_policy_postwar <- topics_policy_postwar %>%
+#   group_by(topic) %>%
+#   slice_max(beta, n = 10) %>% 
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# 
+# # Plot top words per topic
+# top_terms_policy_postwar %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(beta, term, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   scale_y_reordered() +
+#   labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+#   theme_minimal()
+
+
+
+```

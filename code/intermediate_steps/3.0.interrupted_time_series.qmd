@@ -1,0 +1,161 @@
+---
+title: "interrumpted_time_series"
+format: pdf
+editor: visual
+---
+
+```{r}
+###Setup
+library(tidyverse)
+library(dplyr)
+library(here)
+library(stringr)
+library(tidytext)
+```
+
+```{r}
+
+nyt <- read_csv(here("data", "nyt_combined_2021_2023.csv")) %>%
+  mutate(pub_date = ymd_hms(pub_date),  # ensure it's a datetime
+         post_war = if_else(pub_date >= as.POSIXct("2022-02-24 00:00:00"), 1, 0))
+
+```
+
+# Building Energy Score
+
+```{r}
+
+nyt <- nyt %>%
+  mutate(
+    headline = str_to_lower(headline),
+    abstract = str_to_lower(abstract),
+    lead_paragraph = str_to_lower(lead_paragraph)
+  ) #I select all news articles that use any word from my set of energy keywords either in the headline, abstract or lead paragraph
+
+
+energy_keywords <- c(
+  "energy", "climate", "climate change", "global warming", "coal", "wind",
+  "solar", "nuclear", "biofuels", "gas", "gasoline", "natural gas", "oil", "fossil fuels",
+  "renewable", "fuel", "hydropower", "electricity", "power grid", "emissions", "carbon",
+  "greenhouse gases", "decarbonization", "clean energy", "transition", "sustainability", "green economy", "methane", "hydrogen", "infrastructure", "lithium", "electric vehicles", "clean technology", "COP26", "Paris Agreement", "environment", "net zero", "footprint", "IPCC", "UNFCCC", "greentech", "petroleum", "ecological", "environmental", "climate resilience", "EIA", "biofuel", "bio", "twh", "terawatt", "kilowatt", "flood", "hurricane", "earthquake", "greenhouse", "lithium", "pipeline", "gazprom", "nord stream 1", "nord stream", "methane", "cng", "lng", "wti price", "brent crude", "crude oil","liquefied", "minerals", "clean energy", "heat", "warming", "blackout", "opec")
+
+# Create regex pattern
+pattern <- str_c(energy_keywords, collapse = "|") 
+
+
+# Create the final pattern
+#pattern <- paste0("\\b(", str_c(energy_keywords, collapse = "|"), ")\\b")
+
+
+# Filter dataset
+energy_nyt <- nyt %>%
+  filter(str_detect(headline, pattern) |
+         str_detect(abstract, pattern) |
+           str_detect(lead_paragraph, pattern))
+
+
+
+energy_nyt <- energy_nyt %>%
+  mutate(year = year(date_parsed),
+         time = as.numeric(as.Date(pub_date) - as.Date("2022-02-24")),
+         doc_id = row_number(),
+         headline = str_match(energy_nyt$headline, "'main': '([^']+)'")[,2]) |>
+  select(-date_parsed, -keywords) 
+
+
+```
+
+```{r}
+# Combine all three text fields for tokenization
+nyt_energy_tokens <- energy_nyt %>%
+  # Reshape data to have one row per text field per document
+  pivot_longer(
+    cols = c(headline, abstract, lead_paragraph),
+    names_to = "text_field",
+    values_to = "text"
+  ) %>%
+  # Remove any NA values
+  filter(!is.na(text)) %>%
+  # Select just what we need for tokenization
+  select(doc_id, text_field, text) %>%
+  # Tokenize all text
+  unnest_tokens(word, text)
+
+# Calculate energy metrics
+energy_counts <- nyt_energy_tokens %>%
+  mutate(is_energy = word %in% energy_keywords) %>%
+  group_by(doc_id) %>%
+  summarise(
+    energy_score = sum(is_energy),
+    total_words = n(),
+    energy_prop = (energy_score / total_words)*100
+  )
+
+# Join back to main dataset
+energy_nyt <- energy_nyt %>%
+  left_join(energy_counts, by = "doc_id")
+
+
+```
+
+
+```{r}
+# Find the rows where energy score is 0
+zero_score_articles <- energy_nyt %>%
+  filter(energy_score == 0)
+
+# Check where the keywords appear in these articles
+zero_score_checks <- zero_score_articles %>%
+  mutate(
+    headline_match = str_extract_all(headline, pattern),
+    abstract_match = str_extract_all(abstract, pattern),
+    lead_match = str_extract_all(lead_paragraph, pattern)
+  )
+
+
+# Remove rows with energy_score = 0 before regression
+energy_nyt <- energy_nyt %>%
+  filter(energy_score > 0)
+
+```
+
+
+```{r}
+
+# nyt_energy_tokens <- energy_nyt %>%
+#   select(doc_id, lead_paragraph) %>%
+#   unnest_tokens(word, lead_paragraph)
+
+
+```
+
+```{r}
+# energy_counts <- nyt_energy_tokens %>%
+#   mutate(is_energy = word %in% energy_keywords) %>%
+#   group_by(doc_id) %>%
+#   summarise(
+#     energy_score = sum(is_energy),
+#     total_words = n(),
+#     energy_prop = (energy_score / total_words)*100
+#   )
+
+```
+
+```{r}
+# energy_nyt <- energy_nyt %>%
+#   left_join(energy_counts, by = "doc_id")
+```
+
+
+
+
+
+```{r}
+#regression
+model1 <- lm(energy_prop ~ post_war, data = energy_nyt)
+summary(model1)
+
+model3 <- lm(energy_prop ~ time + post_war + time:post_war, data = energy_nyt)
+summary(model3)
+
+```

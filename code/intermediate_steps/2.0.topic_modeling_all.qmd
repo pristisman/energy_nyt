@@ -1,0 +1,402 @@
+---
+title: "Exploratory Data Analysis"
+format: pdf
+editor: visual
+---
+
+```{r}
+###Setup
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(here)
+library(stringr)
+library(ggplot2)
+library(quanteda)
+library(topicmodels)
+library(tidytext)
+```
+
+```{r}
+### Read data
+nyt <- read_csv(here("data", "nyt_combined_2021_2023.csv")) %>%
+  mutate(pub_date = ymd_hms(pub_date),  # ensure it's a datetime
+         post_war = if_else(pub_date >= as.POSIXct("2022-02-24 00:00:00"), 1, 0)) %>%
+  select(-date_parsed, -keywords)
+```
+
+### Filter news by words
+
+```{r}
+### Filter news by the word usage related to energy (same as 1.1)
+
+nyt <- nyt %>%
+  mutate(
+    headline = str_to_lower(headline),
+    abstract = str_to_lower(abstract),
+    lead_paragraph = str_to_lower(lead_paragraph)
+  ) #I select all news articles that use any word from my set of energy keywords either in the headline, abstract or lead paragraph
+
+
+energy_keywords <- c(
+  "energy", "climate", "climate change", "global warming", "coal", "wind",
+  "solar", "nuclear", "biofuels", "gas", "gasoline", "natural gas", "oil", "fossil fuels",
+  "renewable", "fuel", "hydropower", "electricity", "power grid", "emissions", "carbon",
+  "greenhouse gases", "decarbonization", "clean energy", "transition", "sustainability", "green economy", "methane", "hydrogen", "infrastructure", "lithium", "electric vehicles", "clean technology", "COP26", "Paris Agreement", "environment", "net zero", "footprint", "IPCC", "UNFCCC", "greentech", "petroleum", "ecological", "environmental", "climate resilience", "EIA", "biofuel", "bio", "twh", "terawatt", "kilowatt", "flood", "hurricane", "earthquake", "greenhouse", "lithium", "pipeline", "gazprom", "nord stream 1", "nord stream", "methane", "cng", "lng", "wti price", "brent crude", "crude oil","liquefied", "minerals", "clean energy", "heat", "warming", "blackout", "opec")
+
+# Create regex pattern
+pattern <- str_c(energy_keywords, collapse = "|") 
+
+# Filter dataset
+energy_nyt <- nyt %>%
+  filter(str_detect(headline, pattern) |
+         str_detect(abstract, pattern) |
+           str_detect(lead_paragraph, pattern))
+  
+
+energy_nyt <- energy_nyt %>%
+  mutate(year = year(pub_date))
+
+energy_nyt <- energy_nyt %>% 
+  mutate(headline = str_match(energy_nyt$headline, "'main': '([^']+)'")[,2])
+
+```
+
+Pienso hacer analisis pre and post war, y no exactamente por anios pq al tener en los ultimos anios pocos datos, por default voy a tener menos noticias que hablen de energy
+
+### pre-processing
+
+```{r}
+# Pre-processing
+set.seed(2710)
+#1.1 Creating corpus
+corpus <- corpus(energy_nyt, text_field = "lead_paragraph") 
+
+#1.2 Tokenize
+
+tokens_tm <- tokens(corpus, 
+                 split_hyphens = FALSE, # keep hyphenated words
+                 remove_punct = TRUE, # remove punctuation
+                 remove_numbers = TRUE, # remove digits
+                 remove_symbols = TRUE, # remove symbols
+                 valuetype = "regex") |>  
+  tokens_tolower() |> 
+  tokens_wordstem() |> 
+  tokens_remove(c(stopwords("en"), 
+                          "said", "articl", "first", "two", "one", "like", 
+                          "new", "day", "presid", "peopl", "time", "theater", 
+                          "year", "week", "citi", "it’"))
+
+#1.3 Stemming
+
+dfm_tm <- tokens_tm |> 
+        dfm()
+
+dfm_tm <- dfm_tm |> dfm(min_docfreq = 0.05, max_docfreq = 0.95, docfreq_type = "prop", verbose = TRUE) 
+
+topfeatures(dfm_tm)
+```
+
+### Topic Modeling
+
+```{r}
+
+set.seed(2710)
+dfm_lda <- convert(dfm_tm, to="topicmodels") 
+k = 5 
+lda <- LDA(dfm_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_tm <- tidy(lda_tm, matrix = "beta")
+head(topics_tm)
+
+# Visualize the Top Words in Each Topic  
+top_terms <- topics %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+#Extract Document-Topic Probabilities (Gamma): which topic dominates each document
+documents <- tidy(lda, matrix = "gamma")
+head(documents)
+
+```
+
+### Topic Modeling por Año
+
+```{r}
+## 2021
+dfm_2021 <- dfm_subset(dfm, year==2021)
+set.seed(1234)
+dfm_2021_lda <- convert(dfm_2021, to="topicmodels") 
+k = 5
+lda_2021 <- LDA(dfm_2021_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2021 <- tidy(lda_2021, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2021 <- topics_2021 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2021 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+
+dfm_2022 <- dfm_subset(dfm, year==2022)
+
+set.seed(1234)
+dfm_2022_lda <- convert(dfm_2022, to="topicmodels") 
+lda_2022 <- LDA(dfm_2022_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2022 <- tidy(lda_2022, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2022 <- topics_2022 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2022 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic ", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+```
+
+```{r}
+
+dfm_2023 <- dfm_subset(dfm, year==2023)
+
+set.seed(1234)
+dfm_2023_lda <- convert(dfm_2023, to="topicmodels") 
+k = 5
+lda_2023 <- LDA(dfm_2023_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2023 <- tidy(lda_2023, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2023 <- topics_2023 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2023 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+```
+```{r}
+#prewar
+dfm_prewar <- dfm_subset(dfm_tm, post_war==0)
+
+set.seed(2710)
+dfm_prewar_lda <- convert(dfm_prewar, to="topicmodels") 
+k = 5
+lda_prewar <- LDA(dfm_prewar_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_prewar <- tidy(lda_prewar, matrix = "beta")
+head(topics_prewar)
+
+# Visualize the Top Words in Each Topic  
+top_terms_prewar <- topics_prewar %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_prewar %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic Pre-War", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+```
+
+```{r}
+#postwar
+
+dfm_postwar <- dfm_subset(dfm_tm, post_war==1)
+
+set.seed(2710)
+dfm_postwar_lda <- convert(dfm_postwar, to="topicmodels") 
+k = 5
+lda_postwar <- LDA(dfm_postwar_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_postwar <- tidy(lda_postwar, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_postwar <- topics_postwar %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_postwar %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+## COHERENCE SCORE TO CHOOSE OPTIMAL K
+
+# Define a range of k values to test
+k_values <- 2:25
+coherence_values <- numeric(length(k_values))
+
+# Function to calculate a simple coherence measure
+calculate_coherence <- function(lda_model) {
+  # Extract top terms
+  topics <- tidytext::tidy(lda_model, matrix = "beta")
+  
+  # Get top terms by topic and calculate coherence
+  coherence <- topics %>%
+    group_by(topic) %>%
+    slice_max(beta, n = 10) %>%
+    summarize(topic_coherence = mean(beta)) %>%
+    summarize(avg_coherence = mean(topic_coherence)) %>%
+    pull(avg_coherence)
+  
+  return(coherence)
+}
+
+# Compute coherence for each k
+set.seed(2025)
+for (i in seq_along(k_values)) {
+  cat("Fitting LDA model with", k_values[i], "topics...\n")
+  lda_model <- LDA(dfm_lda, k = k_values[i], control = list(seed = 2025))
+  coherence_values[i] <- calculate_coherence(lda_model)
+}
+
+# Create dataframe for plotting
+elbow_coherence_df <- data.frame(k = k_values, coherence = coherence_values)
+
+# Plot the coherence curve
+ggplot(elbow_coherence_df, aes(x = k, y = coherence)) +
+  geom_line() + 
+  geom_point() +
+  labs(title = "Coherence Scores for Different Numbers of Topics",
+       x = "Number of topics (k)", 
+       y = "Coherence Score (higher is better)") +
+  theme_minimal()
+
+##LOCAL MAXIMUM AT 5 - WORTH PAYING ATTENTION
+## Consider a compromise position like k=20, which shows improved coherence over lower values but remains manageable for interpretation.
+## Manually inspect the topics at several key points (perhaps k=5, k=16, and k=25) to assess their interpretability and usefulness for your specific research question.
+
+```
+
+```{r}
+
+## PERPLEXITY SCORE
+
+# Define a range of k (number of topics) values to test
+
+perplexity_values <- numeric(length(k_values))
+
+# Compute perplexity for each k
+set.seed(2025)
+for (i in seq_along(k_values)) {
+  cat("Fitting LDA model with", k_values[i], "topics...\n")
+  lda_model <- LDA(dfm_lda, k = k_values[i], control = list(seed = 2025))
+  perplexity_values[i] <- perplexity(lda_model)
+}
+
+# Create dataframe for plotting
+elbow_perplexity_df <- data.frame(k = k_values, perplexity = perplexity_values)
+
+# Plot the elbow curve
+ggplot(elbow_perplexity_df, aes(x = k, y = perplexity)) +
+  geom_line() + 
+  geom_point() +
+  labs(title = "Elbow Method for Optimal Number of Topics",
+       x = "Number of topics (k)", 
+       y = "Perplexity (lower is better)") +
+  theme_minimal()
+
+
+# If simplicity is important, consider k=2, but be aware that this might be oversimplifying your data into too few topics.
+# If you want more granular topics with both good perplexity and coherence, aim for k=23-25.
+# Since both metrics favor higher k values (23-25), this is likely the sweet spot that balances model fit and topic differentiation.
+
+
+
+```
+
+### FALTA HACER LO MISMO PRE WAR Y POST WAR
