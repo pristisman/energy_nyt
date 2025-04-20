@@ -1,11 +1,12 @@
 ---
-title: "Exploratory Data Analysis"
+title: "Energy Policy in Flux: An NLP Approach to Media Discourse Before and After the Russia-Ukraine Conflict"
 format: pdf
 editor: visual
 autor: Priscila Stisman
+embed-resources: true
 ---
 
-## Quarto
+
 
 ```{r}
 ###Setup
@@ -121,7 +122,6 @@ dev.off()
 
 ## Word cloud for 2022
 
-png("wordcloud_2022.png", width = 800, height = 600, res = 150)
 
 textplot_wordcloud(dfm_subset(dfm, year==2022),
                    random_order = FALSE, 
@@ -133,14 +133,12 @@ textplot_wordcloud(dfm_subset(dfm, year==2022),
 title("Word Cloud from Lead Paragraph, 2022")
 
 
-dev.off()
 
 ```
 
 ```{r}
 ## Word Cloud for 2023
 
-png("wordcloud_2023.png", width = 800, height = 600, res = 150)
 
 textplot_wordcloud(dfm_subset(dfm, year==2023),
                    random_order = FALSE, 
@@ -151,7 +149,6 @@ textplot_wordcloud(dfm_subset(dfm, year==2023),
                    color = RColorBrewer::brewer.pal(8, "Set3"))  
 title("Word Cloud from Lead Paragraph, 2023")
 
-dev.off()
 ```
 
 ## Top Words LEADPARAGRAPH
@@ -239,7 +236,7 @@ ggplot(sentiment_percent_war_policy, aes(x = post_war, y = percentage, fill = se
   ) +
   theme_minimal()
 
-ggsave("sentiment_analysis_plot.png")
+#ggsave("sentiment_analysis_plot.png")
 
 ```
 
@@ -493,7 +490,7 @@ summary(model3)
 
 ```
 
-## STM?
+## Structural Topic Modeling
 
 ```{r}
 
