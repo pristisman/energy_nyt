@@ -6,8 +6,6 @@ autor: Priscila Stisman
 embed-resources: true
 ---
 
-
-
 ```{r}
 ###Setup
 library(tidyverse)
@@ -88,7 +86,9 @@ tokens <- tokens(corpus,
   tokens_remove(c(stopwords("en"), 
                           "said", "articl", "first", "two", "one", "like", 
                           "new", "day", "presid", "peopl", "time", "theater", 
-                          "year", "week", "citi", "it’"))
+                          "year", "week", "citi", "it’", "york", "unit", "can", "last", "home", "month", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "week"))
+
+
 
 
 
@@ -101,9 +101,9 @@ dfm <- dfm |> dfm(min_docfreq = 0.05, max_docfreq = 0.95, docfreq_type = "prop",
 ### Word Clouds by year (TODO ESTO ES LEAD_PARAGRAPH)
 
 ```{r}
-
+set.seed(2710)
 ## Word Cloud for 2021
-png("wordcloud_2021.png", width = 800, height = 600, res = 150)
+#png("wordcloud_2021.png", width = 800, height = 600, res = 150)
 
 textplot_wordcloud(dfm_subset(dfm, year==2021),
                    random_order = FALSE, 
@@ -112,16 +112,18 @@ textplot_wordcloud(dfm_subset(dfm, year==2021),
                    min_size = 0.5, 
                    max_size = 2.8, 
                    color = RColorBrewer::brewer.pal(8, "Set3"))  
-title("Word Cloud from Lead Paragraph, 2021")
+title("")
 
-dev.off()
+#dev.off()
 
 ```
 
 ```{r}
 
 ## Word cloud for 2022
+set.seed(2710)
 
+#png("wordcloud_2022.png", width = 800, height = 600, res = 150)
 
 textplot_wordcloud(dfm_subset(dfm, year==2022),
                    random_order = FALSE, 
@@ -130,15 +132,18 @@ textplot_wordcloud(dfm_subset(dfm, year==2022),
                    min_size = 0.5, 
                    max_size = 2.8, 
                    color = RColorBrewer::brewer.pal(8, "Set3"))  
-title("Word Cloud from Lead Paragraph, 2022")
+title("")
 
+#dev.off()
 
 
 ```
 
 ```{r}
 ## Word Cloud for 2023
+set.seed(2710)
 
+#png("wordcloud_2023.png", width = 800, height = 600, res = 150)
 
 textplot_wordcloud(dfm_subset(dfm, year==2023),
                    random_order = FALSE, 
@@ -147,7 +152,9 @@ textplot_wordcloud(dfm_subset(dfm, year==2023),
                    min_size = 0.5, 
                    max_size = 2.8, 
                    color = RColorBrewer::brewer.pal(8, "Set3"))  
-title("Word Cloud from Lead Paragraph, 2023")
+title("")
+
+#dev.off()
 
 ```
 
@@ -202,7 +209,7 @@ sentiment_analysis_policy <- energy_policy_nyt |>
 #The compound score is a single metric that summarizes the overall sentiment, ranging from -1 (most negative) to +1 (most positive).
 
 sentiment_analysis_policy <- sentiment_analysis_policy |> 
-  select(abstract, year, post_war, sentiment_score) |>
+  select(headline, year, post_war, sentiment_score) |>
   mutate(sentiment = case_when(sentiment_score>0 ~ "positive",
                                sentiment_score == 0 ~ "neutral",
                                sentiment_score<0 ~ "negative"))
@@ -410,8 +417,6 @@ ggsave("perplexity_plot.png")
 
 ## Regression Analysis
 
-
-
 ```{r}
 
 energy_nyt <- energy_nyt %>%
@@ -451,8 +456,6 @@ energy_reg <- energy_nyt %>%
 
 ```
 
-
-
 ```{r}
 # Find the rows where energy score is 0
 # zero_score_articles <- energy_nyt %>%
@@ -473,10 +476,6 @@ energy_reg <- energy_reg %>%
 
 ```
 
-
-
-
-
 ```{r}
 #regression #1
 model1 <- lm(energy_prop ~ post_war, data = energy_reg)
@@ -485,10 +484,53 @@ summary(model1)
 
 ```{r}
 # Regression #2
-model3 <- lm(energy_prop ~ time + post_war + time:post_war, data = energy_reg)
-summary(model3)
+model2 <- lm(energy_prop ~ time + post_war + time:post_war, data = energy_reg)
+summary(model2)
 
 ```
+
+```{r}
+
+# Split the data into pre-war and post-war periods
+pre_war_data <- energy_reg %>% filter(post_war == 0)
+post_war_data <- energy_reg %>% filter(post_war == 1)
+
+# Run separate regressions for each period
+model_pre <- lm(energy_prop ~ time, data = pre_war_data)
+model_post <- lm(energy_prop ~ time, data = post_war_data)
+
+# Run regression for the pooled data
+model_pooled <- lm(energy_prop ~ time, data = energy_reg)
+
+# Calculate RSS (Residual Sum of Squares) for each model
+rss_pre <- sum(model_pre$residuals^2)
+rss_post <- sum(model_post$residuals^2)
+rss_pooled <- sum(model_pooled$residuals^2)
+
+# Calculate n1, n2 (sample sizes) and k (number of parameters)
+n1 <- nrow(pre_war_data)
+n2 <- nrow(post_war_data)
+k <- length(model_pre$coefficients)  # Number of parameters in each equation
+
+# Calculate the Chow test statistic
+chow_statistic <- ((rss_pooled - (rss_pre + rss_post)) / k) / 
+                  ((rss_pre + rss_post) / (n1 + n2 - 2*k))
+
+# Calculate p-value
+p_value <- 1 - pf(chow_statistic, k, n1 + n2 - 2*k)
+
+# Print results
+cat("Chow Test Statistic:", chow_statistic, "\n")
+cat("P-value:", p_value, "\n")
+cat("Reject null hypothesis of no structural break:", p_value < 0.05, "\n")
+
+
+
+```
+
+
+
+
 
 ## Structural Topic Modeling
 
@@ -608,6 +650,3 @@ plot(topic_effects,
 
 
 ```
-
-
-
