@@ -225,7 +225,7 @@ sentiment_percent_war_policy <- sentiment_analysis_policy %>%
 ggplot(sentiment_percent_war_policy, aes(x = post_war, y = percentage, fill = sentiment)) +
   geom_col(position = "stack") +
   scale_fill_manual(
-    name = "Sentiment", 
+    name = "", 
     values = c(negative = "brown2", 
                positive = "darkolivegreen2", 
                neutral = "darkslategray3"),
@@ -315,10 +315,125 @@ top_terms_postwar %>%
   labs(title = "Top Words in Each Topic Post-War ", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
 
-#ggsave("topic_modeling_postwar.png")
+ggsave("topic_modeling_postwar.png")
 
 
 ```
+
+
+
+
+
+
+
+### Topic Modeling por años
+
+```{r}
+
+dfm_2021 <- dfm_subset(dfm, year==2021)
+
+set.seed(2710)
+dfm_2021_lda <- convert(dfm_2021, to="topicmodels") 
+k = 5
+lda_2021 <- LDA(dfm_2021_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2021 <- tidy(lda_2021, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2021 <- topics_2021 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2021 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2021 ", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+ggsave("topic_modeling_2021.png")
+
+```
+
+
+
+
+
+```{r}
+
+dfm_2022 <- dfm_subset(dfm, year==2022)
+
+set.seed(2710)
+dfm_2022_lda <- convert(dfm_2022, to="topicmodels") 
+k = 5
+lda_2022 <- LDA(dfm_2022_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2022 <- tidy(lda_2022, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2022 <- topics_2022 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2022 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2022 ", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+#ggsave("topic_modeling_2022.png")
+
+```
+
+```{r}
+
+dfm_2023 <- dfm_subset(dfm, year==2023)
+
+set.seed(2710)
+dfm_2023_lda <- convert(dfm_2023, to="topicmodels") 
+k = 5
+lda_2023 <- LDA(dfm_2023_lda, k = k, control = list(seed = 1234))
+
+#Explore Betas
+topics_2023 <- tidy(lda_2023, matrix = "beta")
+head(topics)
+
+# Visualize the Top Words in Each Topic  
+top_terms_2023 <- topics_2023 %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+# Plot top words per topic
+top_terms_2023 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2023 ", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+#ggsave("topic_modeling_2023.png")
+
+```
+
 
 ### Optimal K for Topic Modeling
 
@@ -527,10 +642,6 @@ cat("Reject null hypothesis of no structural break:", p_value < 0.05, "\n")
 
 
 ```
-
-
-
-
 
 ## Structural Topic Modeling
 
