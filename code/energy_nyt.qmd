@@ -709,19 +709,29 @@ labelTopics(stm_model)
 
 
 
-# topic_labels <- c("Topic 1: Energy Crisis", #eneri appears in each list
-#                   "Topic 2: US Politics", 
-#                   "Topic 3: Everyday Life", 
-#                   "Topic 4: Fossil Fuels", 
-#                   "Topic 5: Gas Price")
+topic_labels <- c("Topic 1: Energy and Macroeconomics", 
+                  "Topic 2: US Politics", 
+                  "Topic 3: Everyday Life", 
+                  "Topic 4: Energy Crisis", 
+                 "Topic 5: Gas Price")
 
 
 
 
 # War Effect
-plot(topic_effects, covariate = "post_war", topics = 1:5, 
-     model = stm_model, method = "difference", 
-     cov.value1 = 1, cov.value2 = 0)
+#png("war_effect.png", width = 800, height = 600, res = 150)
+
+plot(topic_effects, 
+     covariate = "post_war", 
+     topics = 1:5, 
+     model = stm_model, 
+     method = "difference", 
+     cov.value1 = 1, 
+     cov.value2 = 0,
+     labeltype = "custom",
+     custom.labels = topic_labels)
+
+#dev.off()
 
 
 
@@ -750,12 +760,23 @@ topic_effects <- estimateEffect(1:5 ~ post_war + ns(time, df = 5),
 labelTopics(stm_model)
 
 
+#png("stm_time.png", width = 800, height = 600, res = 150)
+
+
 plot(topic_effects,
      covariate = "time",
      method = "continuous",
      topics = 1:5,
      model = stm_model,
-     printlegend = TRUE)
+     printlegend = TRUE,
+     #labeltype = "custom",
+     custom.labels = topic_labels)
+
+title(xlab = "Days from War Start Date")
+
+
+#dev.off()
+
 
 
 
