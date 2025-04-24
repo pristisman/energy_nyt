@@ -1,7 +1,7 @@
 # Energy Policy in Flux: An NLP Approach to Media Discourse Before and After the Russia-Ukraine Conflict
 
 ## Abstract  
-This paper explores shifts in the discourse surrounding energy policy by applying natural language processing (NLP) techniques to *New York Times* articles published between 2021 and 2023. Using topic modeling approaches such as Latent Dirichlet Allocation (LDA) and Structural Topic Modeling (STM), alongside regression analysis, I examine whether the prominence and framing of energy-related issues changed following the onset of the Russia-Ukraine war. I find...
+This paper explores shifts in the discourse surrounding energy policy by applying natural language processing (NLP) techniques to *New York Times* articles published between 2021 and 2023. Using topic modeling approaches such as Latent Dirichlet Allocation (LDA) and Structural Topic Modeling (STM), alongside regression analysis, I examine whether the prominence and framing of energy-related issues changed following the onset of the Russia-Ukraine war. My findings show that following the onset of the war, energy-related topics became significantly more prominent. However, their salience appears to decline gradually over time, suggesting a normalization or shift in media focus.
 
 ## Repository Structure
 
