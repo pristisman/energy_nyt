@@ -307,7 +307,35 @@ top_terms_prewar %>%
   labs(title = "Top Words in Each Topic Pre-War", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
 
-#ggsave("topic_modeling_prewar.png")
+
+## ADDING LABELS
+
+prewar_topic_labels <- c("Government and Climate Policy", 
+                  "National Politics and Leadership", 
+                  "Climate Change and Institutional Response", 
+                  "Pandemic and Economic Recovery", 
+                  "Environmental and Energy Crisis")
+
+# Create a new topic variable with the labels
+top_terms_prewar_modified <- top_terms_prewar %>%
+  mutate(topic_label = factor(topic, 
+                             levels = 1:5, 
+                             labels = prewar_topic_labels))
+
+# Use the new topic_label variable for faceting
+top_terms_prewar_modified %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic_label, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic Pre-War", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+#ggsave("topic_modeling_prewar_labels.png")
 
 ```
 
@@ -342,7 +370,34 @@ top_terms_postwar %>%
   labs(title = "Top Words in Each Topic Post-War ", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
 
-ggsave("topic_modeling_postwar.png")
+
+## ADDING LABELS
+
+postwar_topic_labels <- c("Nuclear Security and Geopolitical Tensions", 
+                  "US Foreign Policy and Energy Security", 
+                  "Climate Diplomacy and Global Institutions", 
+                  "Economic Conditions and Energy Crisis", 
+                 "Climate Crisis and War Impact on Society")
+
+# Create a new topic variable with the labels
+top_terms_postwar_modified <- top_terms_postwar %>%
+  mutate(topic_label = factor(topic, 
+                             levels = 1:5, 
+                             labels = postwar_topic_labels))
+
+# Use the new topic_label variable for faceting
+top_terms_postwar_modified %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic_label, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic Post-War", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+#ggsave("topic_modeling_postwar_labels.png")
 
 
 ```
@@ -695,6 +750,8 @@ topic_effects <- estimateEffect(formula = ~ post_war + time + post_war:time,
 
 
 labelTopics(stm_model)
+labelTopics(stm_model, n = 20) # to see top 20 words
+
 
 # Topic 1 Top Words:
 #  	 Highest Prob: new, energi, like, week, countri, first, even 
