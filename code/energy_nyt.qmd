@@ -310,11 +310,11 @@ top_terms_prewar %>%
 
 ## ADDING LABELS
 
-prewar_topic_labels <- c("Government and Climate Policy", 
-                  "National Politics and Leadership", 
-                  "Climate Change and Institutional Response", 
-                  "Pandemic and Economic Recovery", 
-                  "Environmental and Energy Crisis")
+prewar_topic_labels <- c("Climate Policy", 
+                  "US Politics", 
+                  "Climate Change", 
+                  "US Pandemic Response", 
+                  "Post-Pandemic Recovery")
 
 # Create a new topic variable with the labels
 top_terms_prewar_modified <- top_terms_prewar %>%
@@ -373,11 +373,11 @@ top_terms_postwar %>%
 
 ## ADDING LABELS
 
-postwar_topic_labels <- c("Nuclear Security and Geopolitical Tensions", 
-                  "US Foreign Policy and Energy Security", 
-                  "Climate Diplomacy and Global Institutions", 
-                  "Economic Conditions and Energy Crisis", 
-                 "Climate Crisis and War Impact on Society")
+postwar_topic_labels <- c("Nuclear Energy", 
+                  "US Foreign Policy", 
+                  "Climate Change and War", 
+                  "Gas and Oil", 
+                 "Climate Crisis")
 
 # Create a new topic variable with the labels
 top_terms_postwar_modified <- top_terms_postwar %>%
@@ -436,6 +436,33 @@ top_terms_2021 %>%
   labs(title = "Top Words in Each Topic 2021 ", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
 
+## ADDING LABELS
+topic_labels_2021 <- c("Local Governance", 
+                  "US Politics", 
+                  "Climate Change and Pandemic", 
+                  "Health Policy", 
+                 "Pandemic Response")
+
+# Create a new topic variable with the labels
+top_terms_2021_modified <- top_terms_2021 %>%
+  mutate(topic_label = factor(topic, 
+                             levels = 1:5, 
+                             labels = topic_labels_2021))
+
+# Use the new topic_label variable for faceting
+top_terms_2021_modified %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic_label, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2021", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
+
 #ggsave("topic_modeling_2021.png")
 
 ```
@@ -470,6 +497,34 @@ top_terms_2022 %>%
   labs(title = "Top Words in Each Topic 2022 ", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
 
+## ADDING LABELS
+topic_labels_2022 <- c(
+  "Nuclear Energy", 
+  "Energy Crisis and Political Response", 
+  "Oil Market", 
+  "War & Gas", 
+  "Energy Prices and Climate Impact"
+)
+
+# Create a new topic variable with the labels
+top_terms_2022_modified <- top_terms_2022 %>%
+  mutate(topic_label = factor(topic, 
+                             levels = 1:5, 
+                             labels = topic_labels_2022))
+
+# Use the new topic_label variable for faceting
+top_terms_2022_modified %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic_label, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2022", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
+
+
 #ggsave("topic_modeling_2022.png")
 
 ```
@@ -503,6 +558,34 @@ top_terms_2023 %>%
   scale_y_reordered() +
   labs(title = "Top Words in Each Topic 2023 ", x = "Word Probability (Beta)", y = "Word") +
   theme_minimal()
+
+
+## ADDING LABELS
+topic_labels_2023 <- c(
+  "Games", 
+  "Entertainment & Leisure", 
+  "US Energy Policy", 
+  "Home & Living Spaces", 
+  "Lifestyle"
+)
+
+# Create a new topic variable with the labels
+top_terms_2023_modified <- top_terms_2023 %>%
+  mutate(topic_label = factor(topic, 
+                             levels = 1:5, 
+                             labels = topic_labels_2023))
+
+# Use the new topic_label variable for faceting
+top_terms_2023_modified %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic_label, scales = "free") +
+  scale_y_reordered() +
+  labs(title = "Top Words in Each Topic 2023", x = "Word Probability (Beta)", y = "Word") +
+  theme_minimal()
+
+
 
 #ggsave("topic_modeling_2023.png")
 
@@ -597,10 +680,6 @@ ggplot(elbow_perplexity_df, aes(x = k, y = perplexity)) +
 
 #ggsave("perplexity_plot.png")
 
-
-# If simplicity is important, consider k=2, but be aware that this might be oversimplifying your data into too few topics.
-# If you want more granular topics with both good perplexity and coherence, aim for k=23-25.
-# Since both metrics favor higher k values (23-25), this is likely the sweet spot that balances model fit and topic differentiation.
 
 ```
 
@@ -780,7 +859,7 @@ labelTopics(stm_model, n = 20) # to see top 20 words
 #  	 Score: state, gas, said, peopl, price, thursday, electr 
 
 
-topic_labels <- c("Topic 1: Energy and Macroeconomics", 
+topic_labels <- c("Topic 1: Greenhouse Emissions", 
                   "Topic 2: US Politics", 
                   "Topic 3: Everyday Life", 
                   "Topic 4: Energy Crisis", 
