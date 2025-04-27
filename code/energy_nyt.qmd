@@ -861,7 +861,7 @@ labelTopics(stm_model, n = 20) # to see top 20 words
 
 topic_labels <- c("Topic 1: Greenhouse Emissions", 
                   "Topic 2: US Politics", 
-                  "Topic 3: Everyday Life", 
+                  "Topic 3: Lifestyle", 
                   "Topic 4: Energy Crisis", 
                  "Topic 5: Gas Price")
 ```
