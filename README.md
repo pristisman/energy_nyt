@@ -15,7 +15,10 @@ Contains all the scripts needed to process data, run models, and generate result
 
 #### Subfolder: `intermediate_steps/`
 
-Includes supporting scripts used during model development on different data subsets.
+This folder contains supporting scripts used during model development on different data subsets.
+These scripts were used to produce intermediate models that helped in selecting the final models.
+The models here were fine-tuned later based on these initial experiments.
+Please note that the scripts may not be fully polished or perfectly tidy, as they were primarily intended for exploration and defining the best-performing models.
 
 #### Main Files:
 
