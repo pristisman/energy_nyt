@@ -310,7 +310,7 @@ top_terms_prewar %>%
 
 ## ADDING LABELS
 
-prewar_topic_labels <- c("Climate Policy", 
+prewar_topic_labels <- c("Climate + Health Policy", 
                   "US Politics", 
                   "Climate Change", 
                   "US Pandemic Response", 
@@ -375,9 +375,9 @@ top_terms_postwar %>%
 
 postwar_topic_labels <- c("Nuclear Energy", 
                   "US Foreign Policy", 
-                  "Climate Change and War", 
+                  "Climate Crisis", 
                   "Gas and Oil", 
-                 "Climate Crisis")
+                 "War")
 
 # Create a new topic variable with the labels
 top_terms_postwar_modified <- top_terms_postwar %>%
