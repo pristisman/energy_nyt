@@ -500,10 +500,10 @@ top_terms_2022 %>%
 ## ADDING LABELS
 topic_labels_2022 <- c(
   "Nuclear Energy", 
-  "Energy Crisis and Political Response", 
+  "Geopolitics", 
   "Oil Market", 
-  "War & Gas", 
-  "Energy Prices and Climate Impact"
+  "Gas", 
+  "Energy Price"
 )
 
 # Create a new topic variable with the labels
